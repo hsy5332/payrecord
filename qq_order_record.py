@@ -85,7 +85,6 @@ class OrderRecord(object):
                                                     "alipay_account": datalist[posturlcount].get("seller_uin"),
                                                     "Payaccount": datalist[posturlcount].get("payer_uin"),
                                                 }
-                                                print(posturlrequstdata)
                                                 try:
                                                     requestResult = requests.post(posturl, posturlrequstdata)
                                                     print(requestResult.text)
