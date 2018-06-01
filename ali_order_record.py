@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import time
 import pymssql
+import requests
 from selenium import webdriver
 
 
@@ -31,11 +32,16 @@ class AutomationWeb(object):
             # driver.find_element_by_id("J-today").click()
             driver.find_element_by_id("J-one-month").click()
 
-        # 存放订单的数据
+        # 相关配置参数
         refreshtime = 15;  # 页面刷新间隔时间
         executetime = 10000;  # 执行时间
+
+        # 记录交易记录接口地址
+        recordinterfaceurl = "http://www.vbenniu.com/webApI/Alidirect_Notify";
         orderid = []  # 存放订单号记录
-        refreshcount = 0;
+        refreshcount = 0
+        successurlcount = 1
+        runtime = time.strftime("%Y-%m-%d %H:%M", time.localtime());
         while refreshcount < executetime:
             length = 0
             submitdata = []
@@ -85,8 +91,57 @@ class AutomationWeb(object):
                                           transferstatusxpath.split("|")[2]
                 transferstatus = driver.find_element_by_xpath(realtransferstatusxpath).get_attribute("innerText");
                 transferorder = driver.find_element_by_id("J-tradeNo-" + str(length + 1)).get_attribute("innerText");
-                if transferorder not in orderid and '+' in transferamount:
+
+                if transferorder not in orderid and '+' in transferamount and transfertime > runtime:
                     orderid.append(transferorder)
+                    driver.find_elements_by_class_name("consume-title")[length].click()
+                    newwindowslist = driver.window_handles  # 记录新开的窗口
+                    driver.switch_to_window(newwindowslist[1])  # 跳转订单详情页
+                    driver.switch_to_window(newwindowslist[0])  # 跳转 支付宝 交易记录页面
+                    newwindowslist.pop  # 删除newwindowslist中新打开窗口的记录
+                    # 抓取页面数据
+                    transferstatusone = driver.find_elements_by_class_name("status")[1].get_attribute(
+                        "innerText")  # 交易状态
+                    transferamountone = \
+                        driver.find_elements_by_class_name("amount")[0].get_attribute("innerText").split('\t')[
+                            0]  # 交易金额
+                    transfertimeone = \
+                        driver.find_elements_by_class_name("fn-left")[2].get_attribute("innerText").replace("\t",
+                                                                                                            "").split(
+                            "：")[1]  # 交易时间
+                    transferorderone = \
+                        driver.find_elements_by_class_name("ft-gray")[1].get_attribute("innerText").split(":")[
+                            1]  # 交易订单号
+                    transfernameone = \
+                        driver.find_elements_by_class_name("ft-gray")[0].get_attribute("innerText").split(":")[
+                            1]  # 对方账户名称
+                    transfernamemo = driver.find_elements_by_class_name("title")[4].get_attribute("innerText")  # 交易备注
+
+                    recordone = {
+                        "transferstatusone": transferstatusone,
+                        "transferamountone": transferamountone,
+                        "transfertimeone": transfertimeone,
+                        "transferorderone": transferorderone,
+                        "transfernameone": transfernameone,
+                        "transfernamemo": transfernamemo,
+                    }
+                    # 记录订单给记录交易接口
+
+                    # 判断请求 记录交易记录接口是否失败，若失败则连续请求三次，大于三次则放弃记录该记录
+                    requestrecordurl = 0
+                    while requestrecordurl < 3:
+                        requestresult = requests.post(recordinterfaceurl, recordone)
+                        if requestresult.status_code == 200:
+                            requestrecordurl = 3
+                            print("发送订单数据成功,目前记录的订单数: %s" % successurlcount)
+                            successurlcount = successurlcount + 1
+                        else:
+                            requestrecordurl = requestrecordurl + 1
+                            print("请求接口URL:" + recordinterfaceurl + "错误,正在尝试第 %s 连接" % (requestrecordurl))
+
+                    print(recordone)
+                    driver.close()  # 关闭订单详情页
+
                     # 生成字典,把数据存到列表中
                     record = {
                         "transferattribute": transferattribute,
