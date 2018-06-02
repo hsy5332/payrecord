@@ -10,7 +10,6 @@ class AutomationWeb(object):
         self.url = url
 
     def launchBrowser(self):
-        # driver = webdriver.Firefox()
         driver = webdriver.Chrome()
         driver.get(self.url)
         return driver
@@ -35,6 +34,7 @@ class AutomationWeb(object):
         # 相关配置参数
         refreshtime = 15;  # 页面刷新间隔时间
         executetime = 10000;  # 执行时间
+        memo = "13197515498"  # 收款人账号
 
         # 记录交易记录接口地址
         recordinterfaceurl = "http://www.vbenniu.com/webApI/Alidirect_Notify";
@@ -90,14 +90,18 @@ class AutomationWeb(object):
                 realtransferstatusxpath = transferstatusxpath.split("|")[0] + str(length + 1) + \
                                           transferstatusxpath.split("|")[2]
                 transferstatus = driver.find_element_by_xpath(realtransferstatusxpath).get_attribute("innerText");
-                transferorderxpath = ".//*[@id='J-item-|1|']/td[5]/div/a"
+
+                # 验证是否能够获取到订单详情按钮,若没有则获取最后详情的URL
+
+                transferorderxpath = ".//*[@id='J-tradeNo-|4|']"
                 readtransferorderxpath = transferorderxpath.split('|')[0] + str(length + 1) + \
                                          transferorderxpath.split('|')[2]
-                transferorderid = \
-                    str(driver.find_element_by_xpath(readtransferorderxpath).get_attribute('href')).split('bizInNo=')[
-                        1].split('&gmtBizCreate')[0]
 
+                transferorderid = str(driver.find_element_by_xpath(readtransferorderxpath).get_attribute("title"))
+
+                print(transfername + ":" + transferorderid)
                 if transferorderid not in orderid and '+' in transferamount and transfertime > runtime:
+
                     orderid.append(transferorderid)
                     record = {
                         "transfernamemo": transfernamemo,
@@ -115,7 +119,16 @@ class AutomationWeb(object):
                     requestrecordurl = 0
                     while requestrecordurl < 3:
                         try:
-                            requestresult = requests.post(recordinterfaceurl, record)
+                            requestdata = {
+                                "Gateway": "alipay",  # 付款类型
+                                "alipay_account": "13197515498",
+                                "memo": memo,  # 收款人账号
+                                "title": transfernamemo,  # 备注
+                                "Payaccount": transfername,  # 付款人账号
+                                "Money": transferamount.strip('+').strip(),  # 金额
+                                "tradeNo": transferorderid,  # 订单号
+                            }
+                            requestresult = requests.post(recordinterfaceurl, requestdata)
                             if requestresult.status_code == 200:
                                 requestrecordurl = 3
                                 print("发送订单数据成功,目前记录的订单数: %s" % successurlcount)
@@ -143,9 +156,9 @@ class AutomationWeb(object):
     # 执行浏览器
 
     def connectDatabase(self, submitdata):
-        sqlserverlink = "106.14.144.68"
-        username = "sa"
-        password = "win@2008"
+        sqlserverlink = ""
+        username = ""
+        password = ""
         database = "alipay_order_record"
         connectsql = pymssql.connect(sqlserverlink, username, password, database)
         cursor = connectsql.cursor()
