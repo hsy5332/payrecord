@@ -42,6 +42,7 @@ class AutomationWeb(object):
         refreshcount = 0
         successurlcount = 1
         runtime = time.strftime("%Y-%m-%d %H:%M", time.localtime())
+        print("开始运行时间:" + str(runtime))
         while refreshcount < executetime:
             length = 0
             submitdata = []
@@ -80,7 +81,7 @@ class AutomationWeb(object):
                 transfernamexpath = ".//*[@id='J-item-|1|']/td[3]/p[2]"
                 realtransfernamexpath = transfernamexpath.split("|")[0] + str(length + 1) + \
                                         transfernamexpath.split("|")[2]
-                transfername = driver.find_element_by_xpath(realtransfernamexpath).get_attribute("innerText")
+                transfername = str(driver.find_element_by_xpath(realtransfernamexpath).get_attribute("innerText"))
 
                 # 订单转账金额
                 transferamount = driver.find_elements_by_class_name("amount-pay")[length].get_attribute("innerText")
@@ -99,7 +100,7 @@ class AutomationWeb(object):
 
                 transferorderid = str(driver.find_element_by_xpath(readtransferorderxpath).get_attribute("title"))
 
-                if transferorderid not in orderid and '+' in transferamount and transfertime > runtime:
+                if transferorderid not in orderid and '+' in transferamount and transfertime > runtime and "天弘基金管理有限公司" not in transfername:
 
                     orderid.append(transferorderid)
                     record = {
