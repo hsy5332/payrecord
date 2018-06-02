@@ -99,7 +99,6 @@ class AutomationWeb(object):
 
                 transferorderid = str(driver.find_element_by_xpath(readtransferorderxpath).get_attribute("title"))
 
-                print(transfername + ":" + transferorderid)
                 if transferorderid not in orderid and '+' in transferamount and transfertime > runtime:
 
                     orderid.append(transferorderid)
@@ -156,9 +155,9 @@ class AutomationWeb(object):
     # 执行浏览器
 
     def connectDatabase(self, submitdata):
-        sqlserverlink = ""
-        username = ""
-        password = ""
+        sqlserverlink = "106.14.144.68"
+        username = "sa"
+        password = "win@2008"
         database = "alipay_order_record"
         connectsql = pymssql.connect(sqlserverlink, username, password, database)
         cursor = connectsql.cursor()
