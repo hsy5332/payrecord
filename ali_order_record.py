@@ -18,23 +18,27 @@ class AutomationWeb(object):
 
 
     def runBrowser(self):
+
+        # 相关配置参数
+        refreshtime = 5;  # 页面刷新间隔时间
+        executetime = 10000;  # 执行时间
+        memo = "13197515498"  # 收款人账号
+        QRcodetime = 30  # 二维码等待时间
+
         self.url = "https://consumeprod.alipay.com/record/standard.htm"
         driver = AutomationWeb.launchBrowser(self)
-        driver.implicitly_wait(30)
 
         # 点击交易记录
         try:
             # 点击这个月的交易记录
-            driver.find_element_by_id("J-one-month").click()
-        except:
-            print("请扫描二维码")
-            # driver.find_element_by_id("J-today").click()
+            time.sleep(QRcodetime)
             driver.find_element_by_id("J-one-month").click()
 
-        # 相关配置参数
-        refreshtime = 15;  # 页面刷新间隔时间
-        executetime = 10000;  # 执行时间
-        memo = "13197515498"  # 收款人账号
+        except:
+            print("请扫描二维码")
+            time.sleep(QRcodetime)
+            # driver.find_element_by_id("J-today").click()
+            driver.find_element_by_id("J-one-month").click()
 
         # 记录交易记录接口地址
         recordinterfaceurl = "http://www.vbenniu.com/webApI/Alidirect_Notify";
@@ -42,10 +46,34 @@ class AutomationWeb(object):
         refreshcount = 0
         successurlcount = 1
         runtime = time.strftime("%Y-%m-%d %H:%M", time.localtime())
-        print("开始运行时间:" + str(runtime))
+        print("开始运行时间:" + str(int(time.time())))
         while refreshcount < executetime:
             length = 0
             submitdata = []
+            refreshexceptioncount = 0
+            refreshexception = driver.find_elements_by_class_name("ui-tip-content")
+
+            if len(driver.find_elements_by_class_name("qrcode-info")) > 0:
+                try:
+                    if "qrcode-info" in driver.find_elements_by_class_name("qrcode-info")[0].get_attribute("innerText"):
+                        time.sleep(QRcodetime)  # 每次刷新页面判断页面是否有二维码图片，如同有则等待30s
+                except:
+                    pass
+
+            # 判断页面是否有异常信息,若有则点击交易记录
+            if len(refreshexception) > 0:
+                try:
+                    if "由于系统异常，暂不能进行此操作" in refreshexception[0].get_attribute("innerText"):
+                        while refreshexceptioncount < len(driver.find_elements_by_tag_name('a')):
+                            if "交易记录" in str(
+                                    driver.find_elements_by_tag_name('a')[refreshexceptioncount].get_attribute(
+                                        "innerText")):
+                                print("出现异常时间:", str(int(time.time())))
+                                driver.find_elements_by_tag_name('a')[refreshexceptioncount].click()
+                            refreshexceptioncount = refreshexceptioncount + 1
+                except:
+                    time.sleep(10)
+
             while length < len(driver.find_elements_by_class_name("J-item")):
                 # 订单属性
                 transfernamemo = driver.find_elements_by_class_name("consume-title")[length].get_attribute(
